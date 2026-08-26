@@ -24,7 +24,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use(cookieParser()); 
+app.use(cookieParser());
 
 
 mongoose.connect(process.env.MONGODB_URI)
@@ -40,7 +40,7 @@ app.get('/api/poems', async (req, res) => {
   }
 });
 
-app.post('/api/poems', async (req, res) => {
+app.post('/api/addPoem', async (req, res) => {
   try {
     const { title, text, categories, main_category, tags, author } = req.body;
 
@@ -66,6 +66,50 @@ app.post('/api/poems', async (req, res) => {
     res.status(400).json({ message: "fail", error: err.message });
   }
 });
+
+
+app.post('/api/editPoem', async (req, res) => {
+  try {
+    const { title, text, categories, main_category, tags, _id } = req.body;
+
+    if (!_id) {
+      return res.status(400).json({
+        message: "fail",
+        error: "Id is required"
+      });
+    }
+
+    if (!title || !text) {
+      return res.status(400).json({
+        message: "fail",
+        error: "Title and text are required fields."
+      });
+    }
+
+
+    const poemToEdit = await Poem.findById(_id);
+
+    if (!poemToEdit) {
+      return res.status(400).json({ error: "Id doesn't match any poem in the database" });
+    }
+
+    poemToEdit.title = title;
+    poemToEdit.text = text;
+    if (categories !== undefined) poemToEdit.categories = categories;
+    if (main_category !== undefined) poemToEdit.main_category = main_category;
+    if (tags !== undefined) poemToEdit.tags = tags;
+
+    const updatedPoem = await poemToEdit.save();
+    return res.status(200).json({
+      message: "success",
+      data: updatedPoem
+    });
+
+  } catch (err) {
+    return res.status(500).json({ message: "fail", error: error.message });
+  }
+});
+
 
 app.post('/api/createUser', async (req, res) => {
   try {
@@ -190,7 +234,7 @@ app.get('/api/getUser', async (req, res) => {
   }
 });
 
-// 6. LOGOUT
+
 app.post('/api/logout', (req, res) => {
   res.clearCookie('token', {
     httpOnly: true,
